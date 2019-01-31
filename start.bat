@@ -1,4 +1,6 @@
 @echo off
-@echo Opening file select dialog...
+
+
+python clean.py %*
 python omni.py %*
 pause
