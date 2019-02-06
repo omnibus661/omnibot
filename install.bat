@@ -1,4 +1,4 @@
 @echo off
-pip install colorama
+REM pip install colorama
 
 pause
