@@ -1,10 +1,6 @@
 # omnibot
 
 
-https://img.shields.io/badge/helpful%3F-maybe-yellow.svg
-https://img.shields.io/badge/helpful%3F-maybe-yellow.svg
-
-
 Semi-Automation of schema.org's Microdata system
 
 Requires at least Python 3.6
