@@ -7,10 +7,37 @@ from shutil import copy2, move
 from time import gmtime, strftime
 from tkinter import *
 from tkinter import filedialog
+import ctypes
 
 from colorama import Back, Fore, Style, init
 
+
+
+
+#Init
+
 init(convert=True)
+
+def Mbox(title, text, style):
+    return ctypes.windll.user32.MessageBoxW(0, text, title, style)
+
+
+
+# Get absolute path to import directory
+dir_path = os.path.dirname(os.path.realpath(__file__))
+rel_path = '\import'
+
+        
+import_path = dir_path + rel_path
+
+rel_error_path = '\error_log'
+abs_error_path = dir_path + rel_error_path
+
+
+if os.path.isfile(dir_path + "\export.html"):
+    print(Fore.LIGHTYELLOW_EX + "!!! Previously generated export.html already exists in directory. Keeping this file will cause errors !!!")
+    input("Please move or delete the file. Press enter key to continue")
+    print("")
 
 
 
@@ -25,19 +52,10 @@ abort = 0
 
 if root.source == "":
 
-    print(Fore.RED + "No file selected. Aborting...")
+    sys.exit(Fore.RED + "No file selected. Aborting...")
 else:
     print(Fore.GREEN + "Selected file " + root.source)
     time.sleep(1)
-
-    # Get absolute path to import directory
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-    rel_path = '\import'
-    import_path = dir_path + rel_path
-
-    rel_error_path = '\error_log'
-    abs_error_path = dir_path + rel_error_path
-    
 
     # Copy file to import directory
     copy2(root.source, import_path, follow_symlinks=True)
@@ -75,7 +93,7 @@ else:
                     while valid != True:
                         print("\n \n")
                         # Ask if add itemscope
-                        confirmadd = input(Fore.WHITE + "Add " + Fore.CYAN + "itemscope " + Fore.WHITE +
+                        confirmadd = input(Fore.WHITE + "Add " + Fore.CYAN + "itemtype " + Fore.WHITE +
                                         "to " + Fore.GREEN + x.replace("\n", "") + Fore.WHITE + " ? (y/n) ")
                         if confirmadd.lower() == "y" or confirmadd.lower() == "n":
                             valid = True
@@ -87,7 +105,7 @@ else:
                                     print("\n")
 
                                     idselect = input(
-                                        Fore.WHITE + "Which " + Fore.CYAN + "itemscope" + Fore.WHITE + "? (n to abort) ")
+                                        Fore.WHITE + "Which " + Fore.CYAN + "itemtype" + Fore.WHITE + "? (n to abort) ")
 
                                     if idselect.isdigit():
 
@@ -103,24 +121,73 @@ else:
                                                     rln = types.readlines()
 
                                                     amt_lines = (len(rln)) + 1
-
-                                                    if int(int(selectedTypeID) + 3) > int(amt_lines):
-                                                        print(Fore.RED + "itemscope not recognized")
-                                                        validid = False
-                                                    else:
-                                                        validid = True
+                 
+                                                    try:
+                                                        
                                                         ln = rln[int(selectedTypeID) + 2]
                                                         selectedTypeSplit = ln.split('#')
                                                         selectedType = selectedTypeSplit[1]
-                                                        print (selectedType)
-                                                
-                                                
-                                            
+                                                        selectedType = selectedType.strip()
+                                                        ID = int(selectedTypeID)
+
+                                                        
+                                                        if ID < 108:
+                                                            print (Fore.CYAN + selectedType + Fore.LIGHTYELLOW_EX + " is JSON-LD only and cannot be applied as itemtype.")
+                                                            time.sleep(1)
+                                                            validid = False
+                                                        
+                                                        else:
+                                                              validid = True
+                                                              while validsel != True:
+                                                                print("\n")
+                                                                confirsel = input(Fore.WHITE + "Add " + Fore.CYAN + selectedType + Fore.WHITE + "? (y/n) ")
+
+                                                                if confirsel.lower() == "y" or confirsel.lower() == "n":
+                                                                    print("\n")
+                                                                    
+                                                                    if confirsel == "y":
+                                                                        validsel = True
+                                                                        # Add itemscope
+                                                                        x = x.replace('<div ', '<div itemscope itemtype="http://schema.org/' + selectedType.replace("\n" ,"")  + '" ')
+                                                                        #print(x)
+                                                                        print(Fore.WHITE + "Added " + Fore.CYAN + selectedType + Fore.WHITE + ".")
+                                                                        
+
+
+                                                                        # Add more specific itemprops
+                                                                        if ID == 109:       #Article
+                                                                           
+                                                                            validconfirm_itemprop = False 
+
+                                                                            while validconfirm_itemprop != True:
+                                                                                confirmadd_itemprop = input(Fore.WHITE + "Add "+ Fore.CYAN + "itemprop(s) "+ Fore.WHITE + "to " + Fore.GREEN + selectedType + Fore.WHITE + " ? (y/n) ")
+                                                                        elif ID == 110:
+                                                                            pass
+                                                                        else:
+                                                                            pass
+
+                                                                            
+
+                                                                    elif confirsel == "n":
+
+                                                                        validid = False
+                                                                        validsel = False
+                                                                        validconfirm = False
+                                                                        validsel = False
+                                                                        break
+                                                                else:
+                                                                    print(Fore.RED + "Invalid input.")
+                                                                    validsel = False
+                                        
+                                                    except IndexError:
+                                                        print(Fore.LIGHTRED_EX + "itemscope out of range")             
+                                                        validid = False
 
 
 
 
-                                        except:
+
+                                        except FileNotFoundError:
                                             os.chdir(abs_error_path)
                                             errorfilename = str(strftime("%d_%m-%H_%M_%S",gmtime())) + ".txt"
                                             error = open(errorfilename,"w+")
@@ -130,42 +197,6 @@ else:
                                             sys.exit(Fore.RED + "An error occurred. View " + Fore.LIGHTMAGENTA_EX + errorfilename + Fore.RED +" for further information.")                                  
                                                                                               
                                         #Ask if add specified itemscope 1
-
-
-
-
-
-                                        if selectedTypeID == "1":
-                                            while validsel != True:
-                                                print("\n")
-                                                confirsel = input(
-                                                    Fore.WHITE + "Add " + Fore.CYAN + "CreativeWork" + Fore.WHITE + "? (y/n) ")
-
-                                                if confirsel.lower() == "y" or confirsel.lower() == "n":
-                                                    print("\n")
-                                                    if confirsel == "y":
-
-                                                        # Add itemscope
-                                                        x = x.replace(
-                                                            '<div ', '<div itemscope itemtype="http://schema.org/CreativeWork" ')
-                                                        print(x)
-                                                        print(
-                                                            Fore.WHITE + "Added " + Fore.CYAN + "CreativeWork" + Fore.WHITE + ".")
-
-                                                    elif confirsel == "n":
-
-                                                        validid = False
-                                                        validsel = False
-                                                        validconfirm = False
-
-                                                    validsel = True
-                                                else:
-                                                    print(
-                                                        Fore.RED + "Invalid input.")
-                                                    validsel = False
-
-                                        else:
-                                            pass
                                             
                                     else:
                                         if idselect.lower() == "n":
@@ -190,10 +221,13 @@ else:
 
     # Export file
 
-    with open("export.html") as e:
-        for x in e:
-            print(x)
+os.system('cls')
+print(Fore.GREEN + 'Writing File. . .')
+time.sleep(3)
 
+os.system('python clean.py')
 exportfile = rel_path + '\export.html'
 print(Fore.WHITE + "Copied " + Fore.GREEN + str(count) + Fore.WHITE +
       " lines to" + Fore.GREEN + " export.html" + Fore.WHITE + ".")
+print("\n")
+
