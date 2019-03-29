@@ -8,33 +8,31 @@ from time import gmtime, strftime
 from tkinter import *
 from tkinter import filedialog
 from tkinter import ttk
+from tkinter import messagebox
 import ctypes
-
-
 from colorama import Back, Fore, Style, init
 
 
-
+#Global Definitions
 dir_path = os.path.dirname(os.path.realpath(__file__))
-rel_path = '\import'
-
-        
+rel_path = '\import'      
 import_path = dir_path + rel_path
- 
 rel_error_path = '\error_log'
 abs_error_path = dir_path + rel_error_path
-
 selection = ""
-
-    
+tmpvr = ""
+newstr = ""
+index = ""  
 value1 = ""
 value = ""
-
-
+counter = 0
 imported = False
+searchterm = ""
+props = []
+
+
 
 #Init
-
 class GUI:
     def __init__(self,master):
         self.master = master
@@ -45,7 +43,8 @@ class GUI:
         
         
         #Widgets
-        self.searchterm = StringVar()
+        self.search_var = StringVar()
+        self.search_var.trace("w", self.update_list)
 
 
         self.label = Label(master, text=infotext)
@@ -53,42 +52,46 @@ class GUI:
         self.log = Listbox(master, height = 4, width = 43)
         #self.close_button = Button(master, text = "Exit", command=self.quit)
         self.text_import = Listbox(master, selectmode = SINGLE, height = 30, width = 100, exportselection = 0)
-        self.select_button = Button(master,text = "Select", command = self.select, state = DISABLED)
+        #self.select_button = Button(master,text = "Select", command = self.select, state = DISABLED)
         self.text_import_scroll = Scrollbar(master,command = self.text_import.yview)
         self.additemscope_button = Button(master, text = "Add Itemtype", command = self.additemtype, state = DISABLED)
         self.logscroll = Scrollbar(master,command = self.log.yview)
         self.itemprops = Listbox(master, selectmode = SINGLE, height = 15, width = 50, exportselection = 0)
         self.itemscroll = Scrollbar(master,command = self.itemprops.yview)
         self.ident_button = Button(master, text = "Identify <div> elements", command = self.ident, state = DISABLED)
-        #self.searchbar = Entry(master,textvariable = self.searchterm, width = 35)
-        #self.searchresults = Listbox(master, selectmode = SINGLE, height = 3, width = 50, exportselection = 0)
-        #self.searchresults_scroll = Scrollbar(master, command = self.searchresults.yview) 
+        self.searchbar = Entry(master,textvariable = self.search_var, width = 50)
+        self.searchresults = Listbox(master, selectmode = SINGLE, height = 3, width = 50)
+        self.searchresults_scroll = Scrollbar(master, command = self.searchresults.yview) 
+        self.remove_button = Button(master, text = "Remove markup", command = self.removemarkup, state = DISABLED)
 
         # Widget Placement
-        self.itemprops.place(x = 650, y = 40)
+        self.itemprops.place(x = 650, y = 125)
         self.label.place(x = 10,y = 500)
         self.import_button.place(x = 10, y = 570)
-        self.select_button.place(x = 85, y = 570)
+        #self.select_button.place(x = 85, y = 570)
         #self.close_button.place(x = 960, y = 570)
         self.text_import.place(x = 10, y = 10)
         self.additemscope_button.place(x = 650, y = 10)
         self.log.place(x = 10 , y = 500)
-        self.ident_button.place(x = 135, y = 570)
+        self.ident_button.place(x = 85, y = 570)
         self.logscroll.place(in_ = self.log, relx = 1.0, relheight = 1.0, bordermod = "outside")
         self.itemscroll.place(in_ = self.itemprops, relx = 1.0, relheight = 1.0, bordermod = "outside")
         self.text_import_scroll.place(in_= self.text_import, relx = 1.0, relheight = 1.0, bordermod = "outside")
-        #self.searchbar.place(x = 740, y = 17)
+        self.searchbar.place(x = 650, y = 45)
         self.text_import.configure(yscrollcommand= self.text_import_scroll.set)
         self.log.configure(yscrollcommand = self.logscroll.set )
         self.itemprops.configure(yscrollcommand = self.itemscroll.set)
-        #self.searchresults.place(x = 650, y = 40)
+        self.searchresults.place(x = 650, y = 70)
+        self.remove_button.place(x = 740, y = 10)
 
-        #self.searchresults_scroll.place(in_ = self.searchresults, relx = 1.0, relheight = 1.0, bordermod = "outside")
-        #self.searchresults.configure(yscrollcommand = self.searchresults_scroll.set)
+        self.searchresults_scroll.place(in_ = self.searchresults, relx = 1.0, relheight = 1.0, bordermod = "outside")
+        self.searchresults.configure(yscrollcommand = self.searchresults_scroll.set)
 
         #Bindings
         self.text_import.bind("<<ListboxSelect>>", self.selectLine)
         self.itemprops.bind("<<ListboxSelect>>", self.selectProp)
+        self.searchresults.bind("<<ListboxSelect>>", self.selectPropSearch)
+
 
 
     def selectLine(self, event):
@@ -101,8 +104,6 @@ class GUI:
         self.log.insert(END, "selection: " + value1.replace("\n", "") + " at index " + str(selection1[0]))
         self.log.itemconfig(END, {'fg': '#17d637'})
 
-        
-
     def selectProp(self, event):
         widget = event.widget
         selection=widget.curselection()
@@ -112,44 +113,85 @@ class GUI:
         print ("selection: " + value.replace("\n", "") + " at index " + str(selection[0]))
         self.log.insert(END, "selection: " + value.replace("\n", "") + " at index " + str(selection[0]))
         self.log.itemconfig(END, {'fg': '#17d637'})
+        self.searchresults.search_clear(0, END)
+    
+    def selectPropSearch(self, event):
+        widget = event.widget
+        selection=widget.curselection()
+        global value
+        value = widget.get(selection[0])
+        return value
+        print ("selection: " + value.replace("\n", "") + " at index " + str(selection[0]))
+        self.log.insert(END, "selection: " + value.replace("\n", "") + " at index " + str(selection[0]))
+        self.log.itemconfig(END, {'fg': '#17d637'})
+        self.itemprops.search_clear(0, END)
         
-
     def additemtype(self):
+        counter = 0
         if value1 != "":
             if value != "":
                 #print("stuff goes here")
                 if "<div " not in value1:
                     print("<div> element not recognized")
-        else:
-            print('Selections cannot be ""')
+                     
+                else:
+                    tmpvr = value1
+                    print(tmpvr)
+                    tmpvr, newstr = tmpvr.split('<div ')
+                    print(newstr)
+                    index = gui.text_import.get(0,"end").index(value1)
+                    print(index)
+                    tmpvar = value
+                    
+                    for each in value1:
+                        if each == " ":
+                            counter +=1
+                        elif each == "<":
+                            break
 
-            
-        
-        
+                    newstr = " "*counter + '<div itemscope itemtype="https://schema.org/' + tmpvar + '" ' + newstr
+
+                    print(counter)
+                    #newstr = newstr.replace("\n", "")
+                    print(newstr)
+                    print(index)
+                    gui.text_import.delete(index, index)
+                    gui.text_import.insert(index, newstr)
+                    
+        else:
+            print(Fore.RED + 'This should never happen.')
 
     def quit(self):
         sys.exit()
 
-    # def search_itemprops(self):
-    #     search_term = self.searchterm.get()
-    #     print(search_term)
-    #     with open("typelist.txt") as typelist:
-    #         types = typelist.readlines()
+    def removemarkup(self):
+        a
 
-    #         for x in types:
-    #             ln = x
-    #             ind,tmp  = ln.split('#')
+    def update_list(self, *args):
+        search_term = self.search_var.get()
+
+        self.searchresults.delete(0, END)
+
+        i = 0
+        temp = ""
+        if search_term != "":
+            while i < gui.itemprops.size():
+                i+=1
+                temp = gui.itemprops.get(i)
+                temp2 = temp.lower()
+                #print(temp)
+                if search_term.lower() in temp2:
+                    gui.searchresults.insert(END, temp)
+                
+                
 
 
-    #     if search_term != "":
-    #         try:
-    #             index = self.itemprops.get(0,"END").index()
-    #         except ValueError:
-    #             pass
 
 
 
-    #     root.after(10, gui.search_itemprops)
+
+
+
 
 
     
@@ -193,15 +235,18 @@ class GUI:
 
             self.text_import.delete(0,END)
             with open("import.html") as i:
-                with open("export.html", "w") as o:
-                    for x in i:
+                for x in i:
+                    self.text_import.insert(END, x)
 
-                        self.text_import.insert(END, x)
             
-            self.select_button['state'] = 'normal'
+            
+            #self.select_button['state'] = 'normal'
             self.ident_button['state'] = 'normal'
             self.import_button['state'] = 'disabled'
             self.additemscope_button['state'] = 'normal'
+            self.remove_button['state'] = 'normal'
+
+
 
 
         # import itemtypes from list                
@@ -212,12 +257,14 @@ class GUI:
             for x in rln:
                 ln = x
                 tmp, lnsplit = ln.split('#')
+                lnsplit = lnsplit.replace("\n", "")
 
                 self.itemprops.insert(END, lnsplit)
         
-        #root.after(10, gui.search_itemprops)
+        props = self.itemprops.get(0, END)
+        print(props)
         
-        #mark itemtypes
+
 
 
     def select(self):
@@ -242,12 +289,17 @@ class GUI:
     def passfunction(self):
         pass
 
+    def close(self):
+        if messagebox.askokcancel("Quit", "Do you want to quit?"):
+            root.destroy()
+
 
 root = Tk()
 gui = GUI(root)
 root.geometry("1000x600")
 root.resizable(False, False)
-root.protocol('WM_DELETE_WINDOW', gui.passfunction)
+root.protocol('WM_DELETE_WINDOW', gui.close)
+#root.configure(background = 'white')
 
 
 
