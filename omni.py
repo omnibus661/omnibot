@@ -29,6 +29,7 @@ counter = 0
 imported = False
 searchterm = ""
 props = []
+infotext = ""
 
 
 
@@ -37,10 +38,6 @@ class GUI:
     def __init__(self,master):
         self.master = master
         master.title("Omnibot")
-        
-
-        infotext = ""
-        
         
         #Widgets
         self.search_var = StringVar()
@@ -56,16 +53,16 @@ class GUI:
         self.text_import_scroll = Scrollbar(master,command = self.text_import.yview)
         self.additemscope_button = Button(master, text = "Add Itemtype", command = self.additemtype, state = DISABLED)
         self.logscroll = Scrollbar(master,command = self.log.yview)
-        self.itemprops = Listbox(master, selectmode = SINGLE, height = 15, width = 50, exportselection = 0)
+        self.itemprops = Listbox(master, selectmode = SINGLE, height = 10, width = 50, exportselection = 0)
         self.itemscroll = Scrollbar(master,command = self.itemprops.yview)
-        self.ident_button = Button(master, text = "Identify <div> elements", command = self.ident, state = DISABLED)
+        #self.ident_button = Button(master, text = "Identify <div> elements", command = self.ident, state = DISABLED)
         self.searchbar = Entry(master,textvariable = self.search_var, width = 50)
-        self.searchresults = Listbox(master, selectmode = SINGLE, height = 3, width = 50)
+        self.searchresults = Listbox(master, selectmode = SINGLE, height = 5, width = 50)
         self.searchresults_scroll = Scrollbar(master, command = self.searchresults.yview) 
         self.remove_button = Button(master, text = "Remove markup", command = self.removemarkup, state = DISABLED)
 
         # Widget Placement
-        self.itemprops.place(x = 650, y = 125)
+        self.itemprops.place(x = 650, y = 155)
         self.label.place(x = 10,y = 500)
         self.import_button.place(x = 10, y = 570)
         #self.select_button.place(x = 85, y = 570)
@@ -73,7 +70,7 @@ class GUI:
         self.text_import.place(x = 10, y = 10)
         self.additemscope_button.place(x = 650, y = 10)
         self.log.place(x = 10 , y = 500)
-        self.ident_button.place(x = 85, y = 570)
+        #self.ident_button.place(x = 85, y = 570)
         self.logscroll.place(in_ = self.log, relx = 1.0, relheight = 1.0, bordermod = "outside")
         self.itemscroll.place(in_ = self.itemprops, relx = 1.0, relheight = 1.0, bordermod = "outside")
         self.text_import_scroll.place(in_= self.text_import, relx = 1.0, relheight = 1.0, bordermod = "outside")
@@ -91,8 +88,9 @@ class GUI:
         self.text_import.bind("<<ListboxSelect>>", self.selectLine)
         self.itemprops.bind("<<ListboxSelect>>", self.selectProp)
         self.searchresults.bind("<<ListboxSelect>>", self.selectPropSearch)
+        self.searchbar.bind("<Double-Button-1>", self.clearSearch)
 
-
+        #Init
 
     def selectLine(self, event):
         widget = event.widget
@@ -125,48 +123,121 @@ class GUI:
         self.log.insert(END, "selection: " + value.replace("\n", "") + " at index " + str(selection[0]))
         self.log.itemconfig(END, {'fg': '#17d637'})
         self.itemprops.search_clear(0, END)
+
+    def removemarkup(self):                                                                                                
+        #beep boop this does not work yet
         
-    def additemtype(self):
+        if value1 != "":
+        
+            if "itemscope itemtype=" in value1:
+                #what the actual fuck is wrong here
+                counter = 0
+                delindex = 0
+                string = value1
+                stringparts = string.split()
+
+                filtered_string =""
+                for part in stringparts:
+                    if part.startswith("itemtype=\"") or part == "itemscope":
+                        pass
+                    else:
+                        filtered_string = filtered_string +" "+part
+
+                index = gui.text_import.get(0,"end").index(value1)
+
+                for each in value1:
+                    if each == " ":
+                        counter +=1
+                    elif each == "<":
+                        break
+                    
+                filtered_string = " "*counter + filtered_string
+
+                gui.text_import.delete(index, index)
+                gui.text_import.insert(index, filtered_string)
+
+                #highlight div elements
+                x = 0
+                
+                selection = gui.text_import.get(x)
+                index = gui.text_import.get(0, "end").index(selection)
+                while x <= gui.text_import.size():
+                    if "<div " in selection:
+                        gui.text_import.itemconfig(index - 1, {'bg': '#eaab70'}) 
+                    selection = gui.text_import.get(x) 
+                    index += 1    
+                    x+= 1
+
+        else:
+            self.log.insert(END, "No selection.")
+            self.log.itemconfig(END, {'fg': '#ff0000'})      
+
+        
+        
+    def additemtype(self): 
         counter = 0
         if value1 != "":
             if value != "":
-                #print("stuff goes here")
-                if "<div " not in value1:
-                    print("<div> element not recognized")
-                     
-                else:
-                    tmpvr = value1
-                    print(tmpvr)
-                    tmpvr, newstr = tmpvr.split('<div ')
-                    print(newstr)
-                    index = gui.text_import.get(0,"end").index(value1)
-                    print(index)
-                    tmpvar = value
+                if not "itemscope itemtype=" in value1:
+                    #print("stuff goes here")
+                    if "<div " not in value1:
+                        self.log.insert(END, "<div> element not recognized.") 
+                        self.log.itemconfig(END, {'fg': '#ff0000'})
+                        
+                    else:
+                        tmpvr = value1
+                        #print(tmpvr)
+                        tmpvr, newstr = tmpvr.split('<div ')
+                        #print(newstr)
+                        index = gui.text_import.get(0,"end").index(value1)
+                        #print(index)
+                        tmpvar = value
+                        
+                        for each in value1:
+                            if each == " ":
+                                counter +=1
+                            elif each == "<":
+                                break
+
+                        newstr = " "*counter + '<div itemscope itemtype="https://schema.org/' + tmpvar + '" ' + newstr
+ 
+                        #print(counter)
+                        #newstr = newstr.replace("\n", "")
+                        #print(newstr)
+                        #print(index)
+                        gui.text_import.delete(index, index)
+                        gui.text_import.insert(index, newstr)
                     
-                    for each in value1:
-                        if each == " ":
-                            counter +=1
-                        elif each == "<":
-                            break
-
-                    newstr = " "*counter + '<div itemscope itemtype="https://schema.org/' + tmpvar + '" ' + newstr
-
-                    print(counter)
-                    #newstr = newstr.replace("\n", "")
-                    print(newstr)
-                    print(index)
-                    gui.text_import.delete(index, index)
-                    gui.text_import.insert(index, newstr)
+                else:
+                    self.log.insert(END, "Already added itemtype to selection.") 
+                    self.log.itemconfig(END, {'fg': '#ff0000'})
                     
         else:
-            print(Fore.RED + 'This should never happen.')
+            self.log.insert(END, "Nothing to insert.") 
+            self.log.itemconfig(END, {'fg': '#ff0000'})
+
+        #highlight div elements
+        x = 0
+        
+        selection = gui.text_import.get(x)
+        index = gui.text_import.get(0, "end").index(selection)
+        while x <= gui.text_import.size():
+            if "<div " in selection:
+                gui.text_import.itemconfig(index - 1, {'bg': '#eaab70'}) 
+            selection = gui.text_import.get(x) 
+            index += 1    
+            x+= 1
+        # gui.log.insert(END, "Highlighted all <div> elements")
+        # gui.log.itemconfig(END, {'fg': '#d4ff00'})
 
     def quit(self):
         sys.exit()
 
-    def removemarkup(self):
-        a
+    def clearSearch(event):
+        gui.searchbar.delete(0,END)
+        return None
 
+    
     def update_list(self, *args):
         search_term = self.search_var.get()
 
@@ -182,20 +253,7 @@ class GUI:
                 #print(temp)
                 if search_term.lower() in temp2:
                     gui.searchresults.insert(END, temp)
-                
-                
-
-
-
-
-
-
-
-
-
-
-    
-
+            
     def imp(self):
         os.system('python clean.py')
         root.source = filedialog.askopenfilename(initialdir="/", title="Select source file", filetypes=(("html files", ".html"), ("all files", ".*")))
@@ -210,14 +268,9 @@ class GUI:
             self.log.insert(END, "Selected file " + root.source)
             self.log.itemconfig(END, {'fg': '#17d637'})
 
-
-
             copy2(root.source, import_path, follow_symlinks=True)
             self.log.insert(END, "Please wait")
             self.log.itemconfig(END, {'fg': '#d4ff00'})
-
- 
-    
 
             # Rename file
 
@@ -232,22 +285,16 @@ class GUI:
 
             count = 0
     
-
             self.text_import.delete(0,END)
             with open("import.html") as i:
                 for x in i:
                     self.text_import.insert(END, x)
 
-            
-            
             #self.select_button['state'] = 'normal'
-            self.ident_button['state'] = 'normal'
+            #self.ident_button['state'] = 'normal'
             self.import_button['state'] = 'disabled'
             self.additemscope_button['state'] = 'normal'
             self.remove_button['state'] = 'normal'
-
-
-
 
         # import itemtypes from list                
         os.chdir(dir_path)
@@ -262,15 +309,26 @@ class GUI:
                 self.itemprops.insert(END, lnsplit)
         
         props = self.itemprops.get(0, END)
-        print(props)
+        #print(props)
+
+        self.searchbar.insert(0, "Search. . .")
+        #highlight div elements
+        x = 0
         
-
-
-
+        selection = gui.text_import.get(x)
+        index = gui.text_import.get(0, "end").index(selection)
+        while x <= gui.text_import.size():
+            if "<div " in selection:
+                gui.text_import.itemconfig(index - 1, {'bg': '#eaab70'}) 
+            selection = gui.text_import.get(x) 
+            index += 1    
+            x+= 1
+        gui.log.insert(END, "Highlighted all <div> elements")
+        gui.log.itemconfig(END, {'fg': '#d4ff00'})
+        
     def select(self):
         selection = gui.text_import.get(ACTIVE)
         gui.label['text'] = selection
-
 
     def ident(self):
         x = 0
@@ -293,167 +351,21 @@ class GUI:
         if messagebox.askokcancel("Quit", "Do you want to quit?"):
             root.destroy()
 
-
 root = Tk()
 gui = GUI(root)
 root.geometry("1000x600")
 root.resizable(False, False)
+#root.withdraw()
 root.protocol('WM_DELETE_WINDOW', gui.close)
 #root.configure(background = 'white')
 
-
-
-
-
 root.mainloop() 
-
 
 init(convert=True)
 
 abort = 0
 
 count = 0
-
-
-#     with open("import.html") as i:
-#         with open("export.html", "w") as o:
-#             for x in i:
-#                 if "<div " in x:
-#                     #line = x.split()
-#                     valid = False
-#                     validid = False
-#                     validsel = False
-#                     validconfirm = False
-#                     selectedTypeID = 0
-
-#                     while valid != True:
-#                         print("\n \n")
-#                         # Ask if add itemscope
-#                         confirmadd = input(Fore.WHITE + "Add " + Fore.CYAN + "itemtype " + Fore.WHITE +
-#                                         "to " + Fore.GREEN + x.replace("\n", "") + Fore.WHITE + " ? (y/n) ")
-#                         if confirmadd.lower() == "y" or confirmadd.lower() == "n":
-#                             valid = True
-
-#                             if confirmadd.lower() == "y":
-#                                 print("\n")
-#                                 # Specify which itemscope
-#                                 while validid != True:
-#                                     print("\n")
-
-#                                     idselect = input(
-#                                         Fore.WHITE + "Which " + Fore.CYAN + "itemtype" + Fore.WHITE + "? (n to abort) ")
-
-#                                     if idselect.isdigit():
-
-#                                         selectedTypeID = idselect
-
-                                        
-
-#                                         os.chdir(dir_path)
-                                            
-#                                         try:
-#                                             with open("typelist.txt") as types:
-#                                                 for i in types:
-#                                                     rln = types.readlines()
-
-#                                                     amt_lines = (len(rln)) + 1
-                 
-#                                                     try:
-                                                        
-#                                                         ln = rln[int(selectedTypeID) + 2]
-#                                                         selectedTypeSplit = ln.split('#')
-#                                                         selectedType = selectedTypeSplit[1]
-#                                                         selectedType = selectedType.strip()
-#                                                         ID = int(selectedTypeID)
-
-                                                        
-#                                                         if ID < 108:
-#                                                             print (Fore.CYAN + selectedType + Fore.LIGHTYELLOW_EX + " is JSON-LD only and cannot be applied as itemtype.")
-#                                                             time.sleep(1)
-#                                                             validid = False
-                                                        
-#                                                         else:
-#                                                               validid = True
-#                                                               while validsel != True:
-#                                                                 print("\n")
-#                                                                 confirsel = input(Fore.WHITE + "Add " + Fore.CYAN + selectedType + Fore.WHITE + "? (y/n) ")
-
-#                                                                 if confirsel.lower() == "y" or confirsel.lower() == "n":
-#                                                                     print("\n")
-                                                                    
-#                                                                     if confirsel == "y":
-#                                                                         validsel = True
-#                                                                         # Add itemscope
-#                                                                         x = x.replace('<div ', '<div itemscope itemtype="http://schema.org/' + selectedType.replace("\n" ,"")  + '" ')
-#                                                                         #print(x)
-#                                                                         print(Fore.WHITE + "Added " + Fore.CYAN + selectedType + Fore.WHITE + ".")
-                                                                        
-
-
-#                                                                         # Add more specific itemprops
-#                                                                         if ID == 109:       #Article
-                                                                           
-#                                                                             validconfirm_itemprop = False 
-
-#                                                                             while validconfirm_itemprop != True:
-#                                                                                 confirmadd_itemprop = input(Fore.WHITE + "Add "+ Fore.CYAN + "itemprop(s) "+ Fore.WHITE + "to " + Fore.GREEN + selectedType + Fore.WHITE + " ? (y/n) ")
-#                                                                         elif ID == 110:
-#                                                                             pass
-#                                                                         else:
-#                                                                             pass
-
-                                                                            
-
-#                                                                     elif confirsel == "n":
-
-#                                                                         validid = False
-#                                                                         validsel = False
-#                                                                         validconfirm = False
-#                                                                         validsel = False
-#                                                                         break
-#                                                                 else:
-#                                                                     print(Fore.RED + "Invalid input.")
-#                                                                     validsel = False
-                                        
-#                                                     except IndexError:
-#                                                         print(Fore.LIGHTRED_EX + "itemscope out of range")             
-#                                                         validid = False
-
-
-
-
-
-#                                         except FileNotFoundError:
-#                                             os.chdir(abs_error_path)
-#                                             errorfilename = str(strftime("%d_%m-%H_%M_%S",gmtime())) + ".txt"
-#                                             error = open(errorfilename,"w+")
-#                                             error.write("File typelist.txt deleted / not found in directory.")
-#                                             error.close()
-
-#                                             sys.exit(Fore.RED + "An error occurred. View " + Fore.LIGHTMAGENTA_EX + errorfilename + Fore.RED +" for further information.")                                  
-                                                                                              
-#                                         #Ask if add specified itemscope 1
-                                            
-#                                     else:
-#                                         if idselect.lower() == "n":
-#                                             valid = False
-#                                             validid = False
-#                                             validsel = False
-#                                             validconfirm = False
-#                                             break
-#                                         else:
-#                                             print(
-#                                                 Fore.RED + "Invalid input.")
-#                                             validid = False
-#                             else:
-#                                 pass
-#                         else:
-#                             print(Fore.RED + "Invalid input.")
-#                             valid = False
-
-#                 count += 1
-#                 with open("export.html", "a") as export:
-#                     export.write(x)
 
 #     # Export file
 
